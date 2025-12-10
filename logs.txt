@@ -1,0 +1,15 @@
+--- LOG DE EXECUÇÃO BRANCH AND BOUND ---
+Padroes (Legenda):
+  x0: [0, 0, 3] (Desperdicio: 0)
+  x1: [0, 1, 1] (Desperdicio: 40)
+  x2: [0, 2, 0] (Desperdicio: 30)
+  x3: [1, 0, 1] (Desperdicio: 20)
+  x4: [1, 1, 0] (Desperdicio: 10)
+------------------------------------------------------------
+ID_NO  | CUSTO(OBJ)   | VARIAVEIS [x0, x1...]
+------------------------------------------------------------
+0      | 1000.0000    | [40.00, 0.00, 0.00, 0.00, 100.00]
+      >>> NOVA SOLUCAO INTEIRA: obj=1000.0000 sol=[40, 0, 0, 0, 100] <<<
+------------------------------------------------------------
+FIM. Nodes processados: 1
+Melhor solucao inteira final: [40, 0, 0, 0, 100] com custo 999.9999999999999
