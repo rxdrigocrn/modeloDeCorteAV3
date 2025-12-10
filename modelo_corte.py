@@ -25,7 +25,6 @@ class Node:
 def generate_maximal_patterns(bar_length, sizes):
     """
     Gera padrões 'máximos' usando backtracking (recursão).
-    Não usa bibliotecas externas, apenas lógica de listas.
     """
     m = len(sizes)
     patterns = []
@@ -35,7 +34,7 @@ def generate_maximal_patterns(bar_length, sizes):
         if i == m:
             if current_len == 0:
                 return
-            # Verifica se é maximal (se não cabe mais nada)
+            # Verifica se é maximal
             for k in range(m):
                 if current_len + sizes[k] <= bar_length + EPS:
                     return
@@ -54,6 +53,38 @@ def generate_maximal_patterns(bar_length, sizes):
 
     backtrack(0, 0)
     return patterns
+
+# --- IMPRESSÃO DO MODELO MATEMÁTICO (NOVO) ---
+def print_lp_model(patterns, wastes, demands):
+    print("\n================ MODELO DE PROGRAMAÇÃO LINEAR INTEIRA ================")
+    print("Sendo xi a quantidade produzida de cada padrão i:\n")
+
+    # 1. Função Objetivo
+    print("minimizar")
+    obj_terms = []
+    for i, w in enumerate(wastes):
+        # Mostra o custo mesmo que seja 0, para ficar claro
+        obj_terms.append(f"{w}x{i}")
+    print("  " + " + ".join(obj_terms))
+    print()
+
+    # 2. Restrições
+    print("sujeito a")
+    for j, demand in enumerate(demands):
+        lhs_terms = [] # Lado esquerdo da equação
+        for p_idx, pattern in enumerate(patterns):
+            coeff = pattern[j]
+            # Formata como "1x0", "0x1", etc.
+            lhs_terms.append(f"{coeff}x{p_idx}")
+        
+        lhs_str = " + ".join(lhs_terms)
+        print(f"  {lhs_str}  >=  {demand}  (Item {j+1})")
+
+    print()
+    # 3. Variáveis
+    var_names = [f"x{i}" for i in range(len(patterns))]
+    print(f"  {', '.join(var_names)} >= 0 e inteiras")
+    print("=======================================================================\n")
 
 # --- RESOLUÇÃO LP COM GLOP ---
 def solve_lp_relaxation(patterns, wastes, demands, node_bounds):
@@ -100,14 +131,12 @@ def solve_lp_relaxation(patterns, wastes, demands, node_bounds):
 
 # --- VALIDAÇÕES ---
 def is_integer_solution(values):
-    # Verifica integridade
     for v in values:
         if abs(v - round(v)) > INT_TOL:
             return False
     return True
 
 def find_fractional_var(values):
-    # Encontra variável mais fracionária
     max_frac = 0.0
     idx = -1
     val = 0.0
@@ -127,7 +156,6 @@ def branch_and_bound(patterns, wastes, demands, log_path="logs.txt"):
     nodes_processed = 0
     node_id_counter = 0
 
-    # Abre log
     log = open(log_path, "w", encoding="utf-8")
     
     log.write("--- LOG DE EXECUÇÃO BRANCH AND BOUND ---\n")
@@ -139,13 +167,11 @@ def branch_and_bound(patterns, wastes, demands, log_path="logs.txt"):
     log.write("-" * 60 + "\n")
     log.flush()
 
-    # Pilha DFS
     stack = []
     root = Node(0, -1)
     stack.append(root)
     node_id_counter = 0
 
-    # Loop principal
     while stack:
         node = stack.pop()
         nodes_processed += 1
@@ -158,7 +184,6 @@ def branch_and_bound(patterns, wastes, demands, log_path="logs.txt"):
             log.write(f"{node.id:<6} | ERROR        | {e}\n")
             continue
 
-        # Escrita log
         if obj is None:
             log.write(f"{node.id:<6} | {'Inviavel':<12} | ---\n")
         else:
@@ -166,15 +191,12 @@ def branch_and_bound(patterns, wastes, demands, log_path="logs.txt"):
             log.write(f"{node.id:<6} | {obj:<12.4f} | [{vals_str}]\n")
         log.flush()
 
-        # Poda 1: Inviável
         if status == pywraplp.Solver.INFEASIBLE or status == pywraplp.Solver.ABNORMAL:
             continue
 
-        # Poda 2: Bound
         if best_solution is not None and obj >= best_obj - EPS:
             continue
 
-        # Poda 3: Solução inteira encontrada
         if is_integer_solution(vals):
             int_obj = obj
             if int_obj < best_obj - EPS:
@@ -184,7 +206,6 @@ def branch_and_bound(patterns, wastes, demands, log_path="logs.txt"):
                 log.flush()
             continue
 
-        # Ramificação
         frac_idx, frac_val = find_fractional_var(vals)
         if frac_idx == -1:
             continue
@@ -192,7 +213,6 @@ def branch_and_bound(patterns, wastes, demands, log_path="logs.txt"):
         floor_val = int(frac_val) 
         ceil_val = floor_val + 1
 
-        # Cria filhos
         node_id_counter += 1
         right = node.create_child(node_id_counter)
         right.lower_bounds[frac_idx] = ceil_val
@@ -201,11 +221,9 @@ def branch_and_bound(patterns, wastes, demands, log_path="logs.txt"):
         left = node.create_child(node_id_counter)
         left.upper_bounds[frac_idx] = floor_val
 
-        # Empilha
         stack.append(right)
         stack.append(left)
 
-    # Finaliza log
     log.write("-" * 60 + "\n")
     log.write(f"FIM. Nodes processados: {nodes_processed}\n")
     if best_solution:
@@ -252,7 +270,9 @@ def main():
     for idx, p in enumerate(patterns):
         print(f"p{idx}: {p}  | comprimento={pattern_lengths[idx]}  desperdicio={wastes[idx]}")
 
-    print("\nIniciando Branch-and-Bound (GLOP)...")
+    print_lp_model(patterns, wastes, demands)   
+ 
+    print("Iniciando Branch-and-Bound (GLOP)...")
     
     # Executa B&B
     best_obj, best_solution, nodes = branch_and_bound(patterns, wastes, demands, log_path="logs.txt")
